@@ -11,6 +11,11 @@ import ElementUI from 'element-ui'
 
 // 引入axios并做相关配置
 import axios from 'axios'
+// 引入 table-tree
+import ZkTable from 'vue-table-with-tree-grid'
+// 注册table-tree
+Vue.use(ZkTable)
+
 // axios请求根地址
 axios.defaults.baseURL = 'http://127.0.0.1:8888/api/private/v1/'
 // axios的请求拦截器(在其中配置token)

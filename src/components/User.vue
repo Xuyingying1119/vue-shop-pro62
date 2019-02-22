@@ -64,8 +64,13 @@
               size="mini"
               @click="delUser(info.row.id)"
             ></el-button>
-            <el-tooltip content="分配角色" placement="top" :enterable="false">
-              <el-button type="warning" icon="el-icon-setting" size="mini"></el-button>
+            <el-tooltip content="分配角色" placement="top" enterable="false">
+              <el-button
+                type="warning"
+                icon="el-icon-setting"
+                size="mini"
+                @click="showFenpeiDialog(info.row.id)"
+              ></el-button>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -81,6 +86,38 @@
         layout="total,sizes,prev,pager,next,jumper"
         :total="querycdt.tot"
       ></el-pagination>
+
+      <!-- 分配角色对话框 -->
+      <el-dialog
+        title="分配角色"
+        :visible.sync="fenpeiDialogVisible"
+        width="50%"
+        @close="fenpeiDialogClose"
+      >
+        <el-form
+          :rules="fenpeiFormRules"
+          ref="fenpeiFormRef"
+          :model="fenpeiForm"
+          label-width="120px"
+        >
+          <el-form-item label="当前的用户" prop="username">{{fenpeiForm.username}}</el-form-item>
+          <el-form-item label="分配的角色" prop="rid">
+            <el-select v-model="fenpeiForm.rid" placeholder="请选择">
+              <el-option
+                v-for="item in roleInfos"
+                :key="item.id"
+                :label="item.roleName"
+                :value="item.id"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="fenpeiDialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="fenpeiUser">确 定</el-button>
+        </span>
+      </el-dialog>
 
       <!-- 添加用户对话框 -->
       <el-dialog title="添加用户" :visible.sync="addDialogVisible" width="50%" @close="addDialogClose">
@@ -140,6 +177,66 @@ export default {
     this.getUserInfos()
   },
   methods: {
+    /* 分配角色相关1 */
+    // 展开分配角色的对话框中
+    // id:被分配角色的目标用户id
+    async showFenpeiDialog(id) {
+      // 展开对话框
+      this.fenpeiDialogVisible = true
+
+      // 根据id获得当前被分配角色的用户信息
+      const { data: res } = await this.$http.get('users/' + id)
+      if (res.meta.status !== 200) {
+        return this.$message.error(res.meta.msg)
+      }
+
+      // 把获得好的用户信息 赋予 给 fenpeiForm
+      this.fenpeiForm = res.data
+      // 现在的fenpeiForm对象内部有如下信息:
+      // "id": 503,
+      // "username": "admin3",
+      // "rid": 0,
+      // "mobile": "00000"
+      // "email": "new@new.com"
+      // 设置rid
+      if (this.fenpeiForm.rid === 0) {
+        this.fenpeiForm.rid = ''
+      }
+
+      // 把供分配的角色信息获得出来
+      const { data: res2 } = await this.$http.get('roles')
+      if (res2.meta.status !== 200) {
+        return this.$message.error(res.meta.msg)
+      }
+      // 接收角色并 赋予 给roleInfos
+      this.roleInfos = res2.data
+    },
+    // 收集数据存储
+    fenpeiUser() {
+      // form表单校验
+      this.$refs.fenpeiFormRef.validate(async valid => {
+        if (valid) {
+          const { data: res } = await this.$http.put(
+            'users/' + this.fenpeiForm.id + '/role',
+            this.fenpeiForm
+          )
+          if (res.meta.status !== 200) {
+            return this.$message.error(res.meta.msg)
+          }
+
+          // 分配角色成功: 对话框关闭、成功提示、重新加载数据
+          this.fenpeiDialogVisible = false
+          this.$message.success(res.meta.msg)
+          this.getUserInfos()
+        }
+      })
+    },
+    fenpeiDialogClose() {
+      // 重置form表单
+      this.$refs.fenpeiFormRef.resetFields()
+    },
+    /* 分配角色相关2 */
+
     /* 修改用户相关1 */
     editDialogClose() {
       this.$refs.editFormRef.resetFields()
@@ -205,6 +302,12 @@ export default {
 
           // 删除成功:消息提示、刷新数据
           this.$message.success(res.meta.msg)
+
+          // 判断当前页码如果只有1条数据(现在已经被删除了),并且当前页是非首页,就让页码减1,进入前一页
+          if (this.userInfos.length === 1 && this.querycdt.pagenum > 1) {
+            // 页码减1操作
+            this.querycdt.pagenum--
+          }
           this.getUserInfos()
         })
         .catch(() => {})
@@ -308,6 +411,23 @@ export default {
       callback()
     }
     return {
+      /* 分配角色相关1 */
+      // 对话框是否显示开关
+      fenpeiDialogVisible: false,
+      // 接收供选取的角色信息
+      roleInfos: [],
+      // 校验规则制定
+      fenpeiFormRules: {
+        rid: [{ required: true, message: '角色必选', trigger: 'change' }]
+      },
+      // 表单数据对象
+      fenpeiForm: {
+        id: 0, // 当前被修改用户的id
+        username: '',
+        rid: 0 // 角色的id
+      },
+      /* 分配角色相关2 */
+
       // 修改用户相关1
       // 控制修改用户对话框是否显示(true:显示 false:隐藏)
       editDialogVisible: false,
@@ -320,7 +440,7 @@ export default {
       // 制作表单域校验的规则
       editFormRules: {
         mobile: [
-          { requiredL: true, message: '手机号码必填', trigger: 'blur' },
+          { required: true, message: '手机号码必填', trigger: 'blur' },
           //  自定义校验手机号码规则
           // {validator:校验函数,trigger:'blur'}
           { validator: checkMobile, trigger: 'blur' }

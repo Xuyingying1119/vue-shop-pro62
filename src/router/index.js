@@ -1,9 +1,13 @@
 import Vue from 'vue'
 import Router from 'vue-router'
+
 import Login from '@/components/Login'
 import Home from '@/components/Home'
 import Welcome from '@/components/Welcome'
 import User from '@/components/User'
+import Rights from '@/components/Rights'
+import Role from '@/components/Role'
+import Cat from '@/components/Cat'
 
 Vue.use(Router)
 var router = new Router({
@@ -24,6 +28,18 @@ var router = new Router({
         {
           path: '/users',
           component: User
+        },
+        {
+          path: '/rights',
+          component: Rights
+        },
+        {
+          path: '/roles',
+          component: Role
+        },
+        {
+          path: '/categories',
+          component: Cat
         }
       ]
     }
