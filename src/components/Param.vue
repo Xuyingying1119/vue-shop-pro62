@@ -34,7 +34,30 @@
 
           <!-- 表格展示数据列表 -->
           <el-table :data="manyParamInfos" border style="width: 100%">
-            <el-table-column type="expend"></el-table-column>
+            <el-table-column type="expand">
+              <!-- 获得每个参数记录信息 -->
+              <template slot-scope="info">
+                <!-- 展示每个参数的可选值列表 -->
+                <el-tag
+                  v-for="(v,k) in info.row.attr_vals_arr"
+                  :key="k"
+                  closable
+                  disable-transitions
+                >{{v}}</el-tag>
+
+                <!-- 添加可选值 的按钮和输入框 -->
+                <el-input
+                  class="input-new-tag"
+                  v-if="inputVisible"
+                  v-model="inputValue"
+                  ref="saveTagInput"
+                  size="small"
+                  @keyup.enter.native="handleInputConfirm(info.row)"
+                  @blur="handleInputConfirm(info.row)"
+                ></el-input>
+                <el-button v-else class="button-new-tag" size="small" @click="showInput">+ New Tag</el-button>
+              </template>
+            </el-table-column>
             <el-table-column type="index" label="序号" width="60"></el-table-column>
             <el-table-column prop="attr_name" label="动态参数名称"></el-table-column>
             <el-table-column label="操作" width="350">
@@ -48,7 +71,30 @@
 
           <!-- 表格展示数据列表 -->
           <el-table :data="onlyParamInfos" border style="width: 100%">
-            <el-table-column type="expend"></el-table-column>
+            <el-table-column type="expand">
+              <!-- 获得每个参数记录信息 -->
+              <template slot-scope="info">
+                <!-- 展示每个参数的可选值列表 -->
+                <el-tag
+                  v-for="(v,k) in info.row.attr_vals_arr"
+                  :key="k"
+                  closable
+                  disable-transitions
+                >{{v}}</el-tag>
+
+                <!-- 添加可选值 的按钮和输入框 -->
+                <el-input
+                  class="input-new-tag"
+                  v-if="inputVisible"
+                  v-model="inputValue"
+                  ref="saveTagInput"
+                  size="small"
+                  @keyup.enter.native="handleInputConfirm(info.row)"
+                  @blur="handleInputConfirm(info.row)"
+                ></el-input>
+                <el-button v-else class="button-new-tag" size="small" @click="showInput">+ New Tag</el-button>
+              </template>
+            </el-table-column>
             <el-table-column type="index" label="序号" width="60"></el-table-column>
             <el-table-column prop="attr_name" label="静态参数名称"></el-table-column>
             <el-table-column label="操作" width="350">
@@ -69,8 +115,34 @@ export default {
     this.getCatInfos()
   },
   methods: {
-    // 切换标签被点击后的回调处理
-    handleClick() {},
+    /* 添加参数可选值 相关1 */
+    // 输入框 被敲回车键 或 失去焦点的回调处理
+    // nowParam:当前被添加可选值对应的"参数记录对象"
+    handleInputConfirm(nowParam) {
+      // 1.通过el-tag显示被添加的可选值(本质: 给nowParam.attr_vals_arr增加元素而已)
+      if (this.inputValue.trim() !== '') {
+        nowParam.attr_vals_arr.push(this.inputValue.trim())
+      }
+      // 2.input隐藏、button显示
+      this.inputVisible = false
+      // 3.清除输入框输入的旧信息
+      this.inputValue = ''
+    },
+    // button按钮被点击回调
+    showInput() {
+      // (input显示、button隐藏)
+      this.inputVisible = true
+
+      // 给 输入框 设置获得焦点
+      // $nextTick作用: 全部内容从"Vue内存"已经渲染到"html容器"了
+      //  与window.onload相似
+      this.$nextTick(_ => {
+        // 如下 有连贯调用两次$refs
+        // 主要作用: 获得最原始底层的input元素
+        this.$refs.saveTagInput.$refs.input.focus()
+      })
+    },
+    /* 添加参数可选值 相关2 */
     // 获取 级联选择器 显示内容
     async getCatInfos() {
       // 获取"第1/2/3级别"分类信息
@@ -128,6 +200,14 @@ export default {
       if (res.meta.status !== 200) {
         return this.$message.error(res.meta.msg)
       }
+
+      // 遍历,把各个参数信息的 可选值内容 由字符串变为数组处理
+      res.data.forEach(item => {
+        // 给参数信息增加attr_vals_arr成员,用以接收 数组格式可选值 信息
+        // split()可以使得字符串变为数组
+        item.attr_vals_arr = item.attr_vals.split(' ')
+      })
+      // console.log(res)
       // 通过data成员接收获取回来的"参数"信息
       if (this.activeName === 'many') {
         this.manyParamInfos = res.data
@@ -138,6 +218,11 @@ export default {
   },
   data() {
     return {
+      /* 添加可选值相关1 */
+      inputVisible: false, // 输入框/按钮 切换显示开关
+      inputValue: '', // 接收输入框信息
+      /* 添加可选值相关2 */
+
       // 接收分类参数列表信息
       manyParamInfos: [],
       onlyParamInfos: [],
@@ -164,5 +249,15 @@ export default {
 <style lang="less" scoped>
 .el-row {
   margin-top: 15px;
+}
+
+// 给el-tag参数可选值设置样式
+.el-tag {
+  margin: 10px 5px;
+}
+
+// 给可选值输入框设置样式
+.input-new-tag {
+  width: 90px;
 }
 </style>

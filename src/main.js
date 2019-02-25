@@ -13,6 +13,11 @@ import ElementUI from 'element-ui'
 import axios from 'axios'
 // 引入 table-tree
 import ZkTable from 'vue-table-with-tree-grid'
+
+// 引入nprogress模块
+import NProgress from 'nprogress'
+// 引入nprpgress模块对应的css样式
+import 'nprogress/nprogress.css'
 // 注册table-tree
 Vue.use(ZkTable)
 
@@ -22,6 +27,8 @@ axios.defaults.baseURL = 'http://127.0.0.1:8888/api/private/v1/'
 axios.interceptors.request.use(
   function(config) {
     // config:代表axios的子级配置对象
+    // 设置加载进度条(开始..)
+    NProgress.start()
     var token = window.sessionStorage.getItem('token')
     config.headers.Authorization = token
     return config
@@ -30,7 +37,14 @@ axios.interceptors.request.use(
     return Promise.reject(error)
   }
 )
-
+// axios响应拦截器
+axios.interceptors.response.use(function (response) {
+  // 设置加载进度条(结束..)
+  NProgress.done()
+  return response;
+},function(error) {
+  return Promise.reject(error);
+});
 // 给axios配置给Vue的$http成员
 Vue.prototype.$http = axios
 

@@ -33,3 +33,11 @@ i.iconfont {
   margin-top: 15px;
   font-size: 12px;
 }
+
+/* 给 步骤条 el-steps设置样式 */
+.el-step__title{
+  font-size: 12px;
+}
+
+/* 给富文本编辑器设置高度 */
+.ql-editor{height: 200px;}
